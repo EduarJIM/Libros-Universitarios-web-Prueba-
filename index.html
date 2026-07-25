@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca Universitaria - Taller 1 POO</title>
+    <script src="https://cdn.tailwindcss.com" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof tailwind !== 'undefined') {
+                tailwind.config = {
+                    theme: {
+                        extend: {
+                            colors: {
+                                nocturne: { 50:'#f0f4ff', 100:'#dbe4ff', 200:'#bac8ff', 300:'#91a7ff', 400:'#748ffc', 500:'#5c7cfa', 600:'#4c6ef5', 700:'#4263eb', 800:'#3b5bdb', 900:'#364fc7', 950:'#0f172a' },
+                                emerald: { 400:'#34d399', 500:'#10b981', 600:'#059669' },
+                                gold: { 400:'#fbbf24', 500:'#f59e0b', 600:'#d97706' }
+                            },
+                            fontFamily: { inter: ['Inter', 'sans-serif'] }
+                        }
+                    }
+                };
+            }
+        });
+    </script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        html { scroll-behavior: smooth; }
+
+        /* ============================================
+           SPLASH SCREEN - Animaciones de carga
+           ============================================ */
+        #splash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999; transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+        #splash.fade-out { opacity: 0; visibility: hidden; }
+
+        .book-icon {
+            width: 80px; height: 80px; position: relative;
+            animation: bookFloat 2s ease-in-out infinite;
+        }
+        .book-icon .book-body {
+            width: 60px; height: 70px; background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 4px 12px 12px 4px; position: absolute; left: 10px; top: 5px;
+            box-shadow: 4px 4px 20px rgba(16, 185, 129, 0.4);
+        }
+        .book-icon .book-page {
+            width: 50px; height: 62px; background: #f8fafc; border-radius: 2px 10px 10px 2px;
+            position: absolute; left: 15px; top: 9px;
+            animation: pageFlip 1.5s ease-in-out infinite;
+        }
+        .book-icon .book-spine {
+            width: 6px; height: 70px; background: #059669; position: absolute;
+            left: 10px; top: 5px; border-radius: 4px 0 0 4px;
+        }
+
+        @keyframes bookFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(3deg); }
+        }
+        @keyframes pageFlip {
+            0%, 100% { transform: rotateY(0deg); }
+            50% { transform: rotateY(-15deg); }
+        }
+
+        .progress-bar {
+            width: 250px; height: 4px; background: #1e293b; border-radius: 4px;
+            overflow: hidden; margin-top: 30px;
+        }
+        .progress-fill {
+            height: 100%; background: linear-gradient(90deg, #10b981, #f59e0b);
+            border-radius: 4px; width: 0%; transition: width 0.1s linear;
+            animation: progressFill 2.5s ease-in-out forwards;
+        }
+        @keyframes progressFill { 0% { width: 0%; } 100% { width: 100%; } }
+
+        /* ============================================
+           SCROLL REVEAL - Animacion al hacer scroll
+           ============================================ */
+        .reveal {
+            opacity: 0; transform: translateY(40px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        /* ============================================
+           3D HOVER - Efecto perspective en tarjetas
+           ============================================ */
+        .card-3d {
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            transform-style: preserve-3d;
+        }
+        .card-3d:hover {
+            transform: perspective(800px) rotateY(-5deg) rotateX(3deg) translateY(-8px);
+            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.2), 0 0 0 1px rgba(16, 185, 129, 0.3);
+        }
+
+        /* ============================================
+           PULSE BUTTON - Efecto de pulsacion
+           ============================================ */
+        .btn-pulse {
+            position: relative; overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .btn-pulse::after {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            width: 0; height: 0; background: rgba(255,255,255,0.2);
+            border-radius: 50%; transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+        .btn-pulse:active::after { width: 300px; height: 300px; }
+
+        /* ============================================
+           MODAL - Animaciones de apertura/cierre
+           ============================================ */
+        .modal-overlay {
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            transform: scale(0.9) translateY(20px);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        /* ============================================
+           BADGE PARADIGMA - Estilos interactivos
+           ============================================ */
+        .paradigm-badge {
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .paradigm-badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+        }
+
+        /* ============================================
+           BARRA DE PROGRESO ESTADISTICAS
+           ============================================ */
+        .stat-bar {
+            height: 8px; border-radius: 4px; background: #1e293b; overflow: hidden;
+        }
+        .stat-bar-fill {
+            height: 100%; border-radius: 4px; transition: width 1.5s ease;
+        }
+
+        /* ============================================
+           GLOW EFFECT - Brillo en tarjetas
+           ============================================ */
+        .glow-emerald {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.1), 0 0 0 1px rgba(16, 185, 129, 0.15);
+        }
+
+        /* ============================================
+           TOAST - Notificaciones emergentes
+           ============================================ */
+        .toast {
+            transform: translateX(120%); transition: transform 0.4s ease;
+        }
+        .toast.show { transform: translateX(0); }
+
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-nocturne-950 text-gray-100 min-h-screen">
+
+    <!-- ============================================
+         SPLASH SCREEN - Pantalla de carga animada
+         ============================================ -->
+    <div id="splash">
+        <div class="book-icon">
+            <div class="book-body"></div>
+            <div class="book-page"></div>
+            <div class="book-spine"></div>
+        </div>
+        <h2 class="text-white text-xl font-semibold mt-6 tracking-wide">Biblioteca Universitaria</h2>
+        <p class="text-gray-400 text-sm mt-2">Sistema de Gestion Academica</p>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <p class="text-gray-500 text-xs mt-3" id="splashText">Cargando recursos...</p>
+    </div>
+
+    <!-- SPLASH INMEDIATO: se ejecuta sin esperar ningun CDN -->
+    <script>
+    (function() {
+        var splashDone = false;
+        function endSplash() {
+            if (splashDone) return;
+            splashDone = true;
+            var s = document.getElementById('splash');
+            var a = document.getElementById('app');
+            if (s) { s.style.transition='opacity 0.6s ease'; s.style.opacity='0'; setTimeout(function(){ s.style.display='none'; },600); }
+            if (a) { a.style.opacity='1'; }
+        }
+        var msgs = ['Cargando...','Preparando catalogo...','Listo!'];
+        var m = 0;
+        var iv = setInterval(function(){ m++; if(m<msgs.length){ var el=document.getElementById('splashText'); if(el) el.textContent=msgs[m]; } },600);
+        setTimeout(function(){ clearInterval(iv); endSplash(); }, 2200);
+        setTimeout(endSplash, 3500);
+        window.addEventListener('load', function(){ setTimeout(endSplash, 100); });
+    })();
+    </script>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast fixed top-6 right-6 z-50 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+        <i data-lucide="check-circle" class="w-5 h-5"></i>
+        <span id="toastMsg">Operacion exitosa</span>
+    </div>
+
+    <!-- ============================================
+         MAIN APP - Contenedor principal
+         ============================================ -->
+    <div id="app" class="opacity-0 transition-opacity duration-1000" style="opacity:0; transition:opacity 0.8s ease;">
+
+        <!-- NAVBAR -->
+        <nav class="fixed top-0 w-full z-40 bg-nocturne-950/80 backdrop-blur-xl border-b border-white/5">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
+                        <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="text-lg font-bold text-white">UniBib</span>
+                </div>
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="#registrar" class="text-sm text-gray-400 hover:text-emerald-400 transition">Registrar</a>
+                    <a href="#buscar" class="text-sm text-gray-400 hover:text-emerald-400 transition">Buscar</a>
+                    <a href="#prestar" class="text-sm text-gray-400 hover:text-emerald-400 transition">Prestar</a>
+                    <a href="#devolver" class="text-sm text-gray-400 hover:text-emerald-400 transition">Devolver</a>
+                    <a href="#estadisticas" class="text-sm text-gray-400 hover:text-emerald-400 transition">Estadisticas</a>
+                </div>
+                <button class="md:hidden text-gray-400" onclick="document.querySelector('.mobile-menu').classList.toggle('hidden')">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="mobile-menu hidden md:hidden px-6 pb-4 space-y-2">
+                <a href="#registrar" class="block text-sm text-gray-400 hover:text-emerald-400 py-2">Registrar</a>
+                <a href="#buscar" class="block text-sm text-gray-400 hover:text-emerald-400 py-2">Buscar</a>
+                <a href="#prestar" class="block text-sm text-gray-400 hover:text-emerald-400 py-2">Prestar</a>
+                <a href="#devolver" class="block text-sm text-gray-400 hover:text-emerald-400 py-2">Devolver</a>
+                <a href="#estadisticas" class="block text-sm text-gray-400 hover:text-emerald-400 py-2">Estadisticas</a>
+            </div>
+        </nav>
+
+        <!-- HERO -->
+        <header class="pt-32 pb-20 px-6 text-center relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent"></div>
+            <div class="relative max-w-4xl mx-auto">
+                <div class="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 mb-6">
+                    <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    <span class="text-emerald-400 text-sm font-medium">Taller 1 - Programacion Orientada a Objetos</span>
+                </div>
+                <h1 class="text-5xl md:text-7xl font-black text-white leading-tight mb-6">
+                    Biblioteca<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-gold-500">Universitaria</span>
+                </h1>
+                <p class="text-gray-400 text-lg max-w-2xl mx-auto mb-10">
+                    Sistema interactivo que implementa 4 paradigmas de programacion en una sola aplicacion.
+                    Cada funcion demuestra un enfoque distinto del desarrollo de software.
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="#registrar" class="btn-pulse bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-semibold transition-all">
+                        Comenzar
+                    </a>
+                    <button onclick="cargarDatosPrueba()" class="btn-pulse bg-white/5 hover:bg-white/10 border border-white/10 text-white px-8 py-3 rounded-xl font-semibold transition-all">
+                        Cargar Demo
+                    </button>
+                </div>
+            </div>
+        </header>
+
+
+        <!-- ============================================
+             SECCION 1: REGISTRAR LIBROS
+             Paradigma: POO
+             ============================================ -->
+        <section id="registrar" class="py-20 px-6">
+            <div class="max-w-6xl mx-auto">
+                <div class="reveal">
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="paradigm-badge bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold px-3 py-1 rounded-full" onclick="abrirModalParadigma('poo')">
+                            POO <i data-lucide="info" class="w-3 h-3 inline ml-1"></i>
+                        </span>
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">Registrar Libros</h2>
+                    <p class="text-gray-400 mb-10 max-w-xl">Cada libro se crea como un objeto con encapsulamiento real. Los atributos son privados y solo se accede mediante propiedades.</p>
+                </div>
+
+                <!-- Busqueda por ISBN via Google Books API -->
+                <div class="reveal bg-nocturne-900/50 border border-white/5 rounded-2xl p-8 glow-emerald mb-8">
+                    <h3 class="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                        <i data-lucide="globe" class="w-5 h-5 text-blue-400"></i>
+                        Buscar por ISBN (Google Books API)
+                    </h3>
+                    <p class="text-gray-400 text-sm mb-5">Busca automaticamente los datos del libro por ISBN. Los campos se completan y usted confirma el registro.</p>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="isbnBusqueda" class="flex-1 bg-nocturne-950 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition" placeholder="Ingrese ISBN (ej: 9780307474728)">
+                        <button onclick="buscarPorISBN()" class="btn-pulse bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap">
+                            <i data-lucide="search" class="w-5 h-5"></i>Buscar en API
+                        </button>
+                    </div>
+                    <div id="isbnResultado" class="mt-4 hidden"></div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Formulario -->
+                    <div class="reveal bg-nocturne-900/50 border border-white/5 rounded-2xl p-8 glow-emerald">
+                        <h3 class="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                            <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-400"></i>
+                            Nuevo Libro
+                        </h3>
+                        <form id="formRegistrar" onsubmit="registrarLibro(event)" class="space-y-5">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Titulo</label>
+                                <input type="text" id="regTitulo" required class="w-full bg-nocturne-950 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition" placeholder="Ej: Cien Anos de Soledad">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Autor</label>
+                                <input type="text" id="regAutor" required class="w-full bg-nocturne-950 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition" placeholder="Ej: Gabriel Garcia Marquez">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">ISBN</label>
+                                <input type="text" id="regISBN" required class="w-full bg-nocturne-950 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition" placeholder="Ej: 978-0307474728">
+                            </div>
+                            <button type="submit" class="btn-pulse w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="book-plus" class="w-5 h-5"></i>
+                                Registrar Libro
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Lista de libros -->
+                    <div class="reveal bg-nocturne-900/50 border border-white/5 rounded-2xl p-8">
+                        <h3 class="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                            <i data-lucide="library" class="w-5 h-5 text-emerald-400"></i>
+                            Catalogo
+                            <span id="totalLibrosBadge" class="ml-auto bg-emerald-500/10 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full">0 libros</span>
+                        </h3>
+                        <div id="listaLibros" class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                            <p class="text-gray-600 text-sm text-center py-8">No hay libros registrados</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================
+             SECCION 2: BUSCAR LIBROS
+             Paradigma: Programacion Estructurada
+             ============================================ -->
+        <section id="buscar" class="py-20 px-6 bg-nocturne-900/30">
+            <div class="max-w-6xl mx-auto">
+                <div class="reveal">
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="paradigm-badge bg-violet-500/10 border border-violet-500/30 text-violet-400 text-xs font-bold px-3 py-1 rounded-full" onclick="abrirModalParadigma('estructurada')">
+                            Estructurada <i data-lucide="info" class="w-3 h-3 inline ml-1"></i>
+                        </span>
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">Buscar Libros</h2>
+                    <p class="text-gray-400 mb-10 max-w-xl">Busqueda estricta usando solo secuencia, seleccion (if/else) e iteracion (while). Sin break, sin saltos incondicionales.</p>
+                </div>
+
+                <div class="reveal bg-nocturne-900/50 border border-white/5 rounded-2xl p-8 glow-emerald">
+                    <div class="flex flex-col md:flex-row gap-4 mb-8">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Termino de busqueda</label>
+                            <div class="relative">
+                                <i data-lucide="search" class="w-5 h-5 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                                <input type="text" id="buscarInput" class="w-full bg-nocturne-950 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition" placeholder="Escriba titulo, autor o ISBN...">
+                            </div>
+                        </div>
+                        <div class="md:w-48">
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Criterio</label>
+                            <select id="buscarCriterio" class="w-full bg-nocturne-950 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition">
+                                <option value="1">Titulo</option>
+                                <option value="2">Autor</option>
+                                <option value="3">ISBN</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="buscarLibros()" class="btn-pulse bg-violet-500 hover:bg-violet-600 text-white px-8 py-3 rounded-xl font-semibold transition-all whitespace-nowrap">
+                                <i data-lucide="search" class="w-5 h-5 inline mr-2"></i>Buscar
+                            </button>
+                        </div>
+                    </div>
+                    <div id="resultadosBusqueda" class="space-y-3">
+                        <p class="text-gray-600 text-sm text-center py-6">Ingrese un termino para buscar</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================
+             SECCION 3: PRESTAR LIBROS
+             Paradigma: Programacion Imperativa
+             ============================================ -->
+        <section id="prestar" class="py-20 px-6">
+            <div class="max-w-6xl mx-auto">
+                <div class="reveal">
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="paradigm-badge bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-bold px-3 py-1 rounded-full" onclick="abrirModalParadigma('imperativa')">
+                            Imperativa <i data-lucide="info" class="w-3 h-3 inline ml-1"></i>
+                        </span>
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">Prestar Libros</h2>
+                    <p class="text-gray-400 mb-10 max-w-xl">Mutacion directa de variables en memoria. Cada paso modifica el estado del sistema de forma explicita y secuencial.</p>
+                </div>
+
+                <div class="reveal grid md:grid-cols-2 gap-8">
+                    <!-- Formulario prestamo -->
+                    <div class="bg-nocturne-900/50 border border-white/5 rounded-2xl p-8 glow-emerald">
+                        <h3 class="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                            <i data-lucide="hand-handshake" class="w-5 h-5 text-gold-500"></i>
+                            Nuevo Prestamo
+                        </h3>
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Seleccionar libro</label>
+                                <select id="prestarSelect" class="w-full bg-nocturne-950 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition">
+                                    <option value="">-- Seleccione un libro disponible --</option>
+                                </select>
+                            </div>
+                            <button onclick="abrirModalPrestar()" id="btnPrestar" disabled class="btn-pulse w-full bg-gold-500 hover:bg-gold-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all">
+                                <i data-lucide="arrow-up-right" class="w-5 h-5 inline mr-2"></i>Prestar Libro
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de prestamos activos -->
+                    <div class="bg-nocturne-900/50 border border-white/5 rounded-2xl p-8">
+                        <h3 class="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                            <i data-lucide="clock" class="w-5 h-5 text-orange-400"></i>
+                            Prestamos Activos
+                            <span id="totalPrestamosBadge" class="ml-auto bg-orange-500/10 text-orange-400 text-xs font-bold px-3 py-1 rounded-full">0</span>
+                        </h3>
+                        <div id="listaPrestamos" class="space-y-3 max-h-64 overflow-y-auto pr-2">
+                            <p class="text-gray-600 text-sm text-center py-8">No hay prestamos activos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================
+             SECCION 4: DEVOLVER LIBROS
+             Paradigma: Programacion Imperativa
+             ============================================ -->
+        <section id="devolver" class="py-20 px-6 bg-nocturne-900/30">
+            <div class="max-w-6xl mx-auto">
+                <div class="reveal">
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="paradigm-badge bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-bold px-3 py-1 rounded-full" onclick="abrirModalParadigma('imperativa')">
+                            Imperativa <i data-lucide="info" class="w-3 h-3 inline ml-1"></i>
+                        </span>
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">Devolver Libros</h2>
+                    <p class="text-gray-400 mb-10 max-w-xl">Flujo secuencial con mutacion explicita de estado. El libro vuelve a disponible y el prestamo se marca como devuelto.</p>
+                </div>
+
+                <div class="reveal bg-nocturne-900/50 border border-white/5 rounded-2xl p-8 glow-emerald">
+                    <div id="listaDevolver" class="space-y-3">
+                        <p class="text-gray-600 text-sm text-center py-8">No hay prestamos activos para devolver</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================
+             SECCION 5: ESTADISTICAS
+             Paradigma: Abstraccion de Datos (TAD)
+             ============================================ -->
+        <section id="estadisticas" class="py-20 px-6">
+            <div class="max-w-6xl mx-auto">
+                <div class="reveal">
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="paradigm-badge bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold px-3 py-1 rounded-full" onclick="abrirModalParadigma('tad')">
+                            TAD <i data-lucide="info" class="w-3 h-3 inline ml-1"></i>
+                        </span>
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">Estadisticas</h2>
+                    <p class="text-gray-400 mb-10 max-w-xl">Calculo aislado de metricas sin alterar datos originales. Separacion entre especificacion (que hace) e implementacion (como lo hace).</p>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
+                    <div class="reveal bg-nocturne-900/50 border border-white/5 rounded-2xl p-6 text-center card-3d">
+                        <div class="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="book-open" class="w-6 h-6 text-emerald-400"></i>
+                        </div>
+                        <p class="text-3xl font-bold text-white" id="statTotal">0</p>
+                        <p class="text-gray-500 text-sm mt-1">Total Libros</p>
+                    </div>
+                    <div class="reveal bg-nocturne-900/50 border border-white/5 rounded-2xl p-6 text-center card-3d">
+                        <div class="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="check-circle" class="w-6 h-6 text-blue-400"></i>
+                        </div>
+                        <p class="text-3xl font-bold text-white" id="statDisponibles">0</p>
+                        <p class="text-gray-500 text-sm mt-1">Disponibles</p>
+                    </div>
+                    <div class="reveal bg-nocturne-900/50 border border-white/5 rounded-2xl p-6 text-center card-3d">
+                        <div class="w-12 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="clock" class="w-6 h-6 text-orange-400"></i>
+                        </div>
+                        <p class="text-3xl font-bold text-white" id="statPrestados">0</p>
+                        <p class="text-gray-500 text-sm mt-1">Prestados</p>
+                    </div>
+                    <div class="reveal bg-nocturne-900/50 border border-white/5 rounded-2xl p-6 text-center card-3d">
+                        <div class="w-12 h-12 bg-gold-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="percent" class="w-6 h-6 text-gold-400"></i>
+                        </div>
+                        <p class="text-3xl font-bold text-white" id="statPorcentaje">0%</p>
+                        <p class="text-gray-500 text-sm mt-1">Ocupacion</p>
+                    </div>
+                </div>
+
+                <!-- Barras de progreso -->
+                <div class="reveal bg-nocturne-900/50 border border-white/5 rounded-2xl p-8">
+                    <h3 class="text-lg font-semibold text-white mb-6">Distribucion del Catalogo</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-emerald-400 font-medium">Disponibles</span>
+                                <span class="text-gray-400" id="barDispText">0%</span>
+                            </div>
+                            <div class="stat-bar">
+                                <div class="stat-bar-fill bg-gradient-to-r from-emerald-500 to-emerald-400" id="barDisp" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-orange-400 font-medium">Prestados</span>
+                                <span class="text-gray-400" id="barPresText">0%</span>
+                            </div>
+                            <div class="stat-bar">
+                                <div class="stat-bar-fill bg-gradient-to-r from-orange-500 to-orange-400" id="barPres" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="py-10 px-6 border-t border-white/5">
+            <div class="max-w-6xl mx-auto text-center">
+                <p class="text-gray-600 text-sm">Taller 1 - POO | Sistema de Biblioteca Universitaria</p>
+                <p class="text-gray-700 text-xs mt-2">4 Paradigmas de Programacion en una sola aplicacion</p>
+            </div>
+        </footer>
+
+
+    <!-- ============================================
+         MODAL: Confirmar Prestamo
+         ============================================ -->
+    <div id="modalPrestar" class="modal-overlay fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
+        <div class="modal-content bg-nocturne-900 border border-white/10 rounded-2xl p-8 max-w-md w-full">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-gold-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="hand-handshake" class="w-8 h-8 text-gold-500"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Confirmar Prestamo</h3>
+                <p class="text-gray-400 text-sm mb-6">Se prestara el libro seleccionado. El estado cambiara de "Disponible" a "Prestado".</p>
+                <p class="text-emerald-400 font-semibold mb-6" id="modalPrestarLibro"></p>
+                <div class="flex gap-3">
+                    <button onclick="cerrarModal('modalPrestar')" class="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-xl font-semibold transition">Cancelar</button>
+                    <button onclick="confirmarPrestamo()" class="flex-1 btn-pulse bg-gold-500 hover:bg-gold-600 text-white py-3 rounded-xl font-semibold transition">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         MODAL: Confirmar Devolucion
+         ============================================ -->
+    <div id="modalDevolver" class="modal-overlay fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
+        <div class="modal-content bg-nocturne-900 border border-white/10 rounded-2xl p-8 max-w-md w-full">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="rotate-ccw" class="w-8 h-8 text-emerald-500"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Confirmar Devolucion</h3>
+                <p class="text-gray-400 text-sm mb-6">El libro volvera a estar disponible para futuros prestamos.</p>
+                <p class="text-emerald-400 font-semibold mb-6" id="modalDevolverLibro"></p>
+                <div class="flex gap-3">
+                    <button onclick="cerrarModal('modalDevolver')" class="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-xl font-semibold transition">Cancelar</button>
+                    <button onclick="confirmarDevolucion()" class="flex-1 btn-pulse bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-semibold transition">Devolver</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         MODAL: Teoria del Paradigma
+         ============================================ -->
+    <div id="modalParadigma" class="modal-overlay fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
+        <div class="modal-content bg-nocturne-900 border border-white/10 rounded-2xl p-8 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white" id="modalParadigmaTitle"></h3>
+                <button onclick="cerrarModal('modalParadigma')" class="text-gray-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="modalParadigmaBody" class="space-y-4 text-gray-300 text-sm leading-relaxed"></div>
+            <button onclick="cerrarModal('modalParadigma')" class="mt-6 w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-xl font-semibold transition">Cerrar</button>
+        </div>
+    </div>
+
+    </div> <!-- fin #app -->
+
+
+    <!-- ============================================
+         JAVASCRIPT - Logica del sistema
+         ============================================ -->
+    <script>
+    // =============================================================================
+    // SISTEMA DE BIBLIOTECA UNIVERSITARIA - JavaScript
+    // =============================================================================
+    // Cada seccion del codigo implementa un paradigma de programacion distinto,
+    // con comentarios explicitos que explican QUE paradigma se usa y POR QUE.
+    // =============================================================================
+
+    // Estado global del sistema
+    let listaLibros = [];
+    let prestamosRealizados = [];
+    let contadorIdPrestamo = 0;
+    let prestamoSeleccionado = null;
+
+    // =============================================================================
+    // PARADIGMA 1: PROGRAMACION ORIENTADA A OBJETOS (POO)
+    // =============================================================================
+    // QUE HACE: Define la clase Libro que modela un libro como objeto con
+    //   atributos privados y comportamientos encapsulados.
+    //
+    // QUE PARADIGMA USA: POO con ENCAPSULAMIENTO REAL usando la palabra
+    //   clave # (private) de JavaScript moderno. Los atributos solo son
+    //   accesibles dentro de la clase, nunca desde fuera.
+    //
+    // POR QUE REPRESENTA POO:
+    //   - CLASE: Libro es una plantilla que define que es un libro.
+    //   - ENCAPSULAMIENTO: #titulo, #autor, #isbn son privados.
+    //   - INSTANCIACION: new Libro(...) crea objetos independientes.
+    //   - ABSTRACCION: disponible() y prestado() ocultan la implementacion.
+    // =============================================================================
+
+    class Libro {
+        /**
+         * CONSTRUCTOR: Crea una instancia nueva de Libro.
+         * Los atributos con # son PRIVADOS (encapsulamiento real en JS).
+         */
+        constructor(titulo, autor, isbn) {
+            this.#titulo = titulo;
+            this.#autor = autor;
+            this.#isbn = isbn;
+            this.#disponible = true;
+            this.#fechaPrestamo = null;
+        }
+
+        // Atributos privados (solo accesibles dentro de la clase)
+        #titulo;
+        #autor;
+        #isbn;
+        #disponible;
+        #fechaPrestamo;
+
+        // PROPIEDADES DE SOLO LECTURA (abstraccion: acceso controlado)
+        get titulo() { return this.#titulo; }
+        get autor() { return this.#autor; }
+        get isbn() { return this.#isbn; }
+        get fechaPrestamo() { return this.#fechaPrestamo; }
+
+        // METODOS DE COMPORTAMIENTO (abstraccion: interfaz publica)
+        disponible() { return this.#disponible; }
+
+        marcarPrestado() {
+            this.#disponible = false;
+            this.#fechaPrestamo = new Date().toLocaleString('es-ES');
+        }
+
+        marcarDevuelto() {
+            this.#disponible = true;
+            this.#fechaPrestamo = null;
+        }
+
+        /** Serializa el objeto a un diccionario plano (para localStorage) */
+        toJSON() {
+            return {
+                titulo: this.#titulo,
+                autor: this.#autor,
+                isbn: this.#isbn,
+                disponible: this.#disponible,
+                fechaPrestamo: this.#fechaPrestamo
+            };
+        }
+
+        /** Reconstruye un Libro desde un objeto plano */
+        static fromJSON(data) {
+            const libro = new Libro(data.titulo, data.autor, data.isbn);
+            if (!data.disponible) libro.marcarPrestado();
+            return libro;
+        }
+    }
+
+
+
+    // PARADIGMA 2: PROGRAMACION ESTRUCTURADA
+    // Busqueda usando while + if/else, sin break/continue/return en el bucle.
+    function buscarLibros() {
+        const criterio = document.getElementById('buscarCriterio').value;
+        const valor = document.getElementById('buscarInput').value.toLowerCase().trim();
+        const resultados = [];
+        const contenedor = document.getElementById('resultadosBusqueda');
+
+        if (valor === '') {
+            contenedor.innerHTML = '<p class="text-gray-600 text-sm text-center py-6">Ingrese un termino para buscar</p>';
+            return;
+        }
+
+        let indice = 0;
+        const cantidad = listaLibros.length;
+
+        while (indice < cantidad) {
+            const libro = listaLibros[indice];
+            let campo = '';
+            if (criterio === '1') { campo = libro.titulo; }
+            else if (criterio === '2') { campo = libro.autor; }
+            else if (criterio === '3') { campo = libro.isbn; }
+            else { campo = ''; }
+
+            if (campo.toLowerCase().indexOf(valor) !== -1) {
+                resultados.push(libro);
+            }
+            indice = indice + 1;
+        }
+
+        if (resultados.length === 0) {
+            contenedor.innerHTML = '<p class="text-gray-600 text-sm text-center py-6">No se encontraron libros</p>';
+        } else {
+            let html = '';
+            let i = 0;
+            while (i < resultados.length) {
+                const l = resultados[i];
+                const estado = l.disponible() ?
+                    '<span class="text-emerald-400 text-xs font-semibold bg-emerald-500/10 px-2 py-1 rounded-full">Disponible</span>' :
+                    '<span class="text-orange-400 text-xs font-semibold bg-orange-500/10 px-2 py-1 rounded-full">Prestado</span>';
+                html += '<div class="bg-nocturne-950/50 border border-white/5 rounded-xl p-4 flex items-center justify-between card-3d"><div><p class="text-white font-semibold">' + l.titulo + '</p><p class="text-gray-500 text-sm">' + l.autor + ' | ' + l.isbn + '</p></div>' + estado + '</div>';
+                i = i + 1;
+            }
+            contenedor.innerHTML = html;
+        }
+    }
+
+
+    // PARADIGMA 3: PROGRAMACION IMPERATIVA - PRESTAR LIBRO
+    // Mutacion directa de variables y listas globales. Flujo secuencial explicito.
+    function registrarLibro(event) {
+        event.preventDefault();
+        const titulo = document.getElementById('regTitulo').value.trim();
+        const autor = document.getElementById('regAutor').value.trim();
+        const isbn = document.getElementById('regISBN').value.trim();
+
+        if (!titulo || !autor || !isbn) {
+            showToast('Todos los campos son obligatorios', 'error');
+            return;
+        }
+
+        // Verificar ISBN duplicado
+        let duplicado = false;
+        let idx = 0;
+        while (idx < listaLibros.length) {
+            if (listaLibros[idx].isbn === isbn) { duplicado = true; }
+            idx = idx + 1;
+        }
+        if (duplicado) { showToast('Ya existe un libro con ese ISBN', 'error'); return; }
+
+        // PASO 1: Crear instancia de Libro (POO como herramienta)
+        const nuevoLibro = new Libro(titulo, autor, isbn);
+
+        // PASO 2: MUTACION DIRECTA - agregar a la lista global
+        listaLibros.push(nuevoLibro);
+
+        // Guardar en localStorage
+        guardarDatos();
+
+        // Actualizar interfaz
+        document.getElementById('formRegistrar').reset();
+        renderizarLibros();
+        renderizarSelectPrestamos();
+        renderizarEstadisticas();
+        showToast('Libro registrado exitosamente');
+    }
+
+    // PARADIGMA IMPERATIVO: Busqueda de libro por ISBN via Google Books API
+    // Pasos explicitos: leer input, hacer request HTTP, parsear respuesta, mutar DOM.
+    async function buscarPorISBN() {
+        const input = document.getElementById('isbnBusqueda');
+        const isbn = input.value.trim().replace(/-/g, '');
+        const contenedor = document.getElementById('isbnResultado');
+
+        if (!isbn) {
+            showToast('Ingrese un ISBN para buscar', 'error');
+            return;
+        }
+
+        // MUTACION: mostrar estado de carga
+        contenedor.classList.remove('hidden');
+        contenedor.innerHTML = '<div class="flex items-center gap-3 text-gray-400 text-sm"><div class="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>Buscando en Google Books API...</div>';
+
+        try {
+            // PASO 1: Request HTTP a la API
+            const response = await fetch('https://www.googleapis.com/books/v1/volumes?q=isbn:' + isbn + '&maxResults=1');
+            const data = await response.json();
+
+            // PASO 2: Validar que hay resultados
+            if (!data.items || data.items.length === 0) {
+                contenedor.innerHTML = '<div class="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 text-orange-400 text-sm">No se encontro ningun libro con el ISBN <strong>' + isbn + '</strong>. Verifique el numero e intente de nuevo.</div>';
+                return;
+            }
+
+            // PASO 3: Extraer datos del libro
+            const vol = data.items[0].volumeInfo;
+            const titulo = vol.title || 'Sin titulo';
+            const autores = vol.authors ? vol.authors.join(', ') : 'Autor desconocido';
+            const isbnFinal = (vol.industryIdentifiers || []).find(function(id) { return id.type === 'ISBN_13'; });
+            const isbnExtract = isbnFinal ? isbnFinal.identifier : isbn;
+            const portada = vol.imageLinks ? vol.imageLinks.thumbnail : '';
+            const descripcion = vol.description || 'Sin descripcion disponible.';
+            const paginas = vol.pageCount || 'N/A';
+            const categorias = vol.categories ? vol.categories[0] : 'General';
+            const publicado = vol.publishedDate || 'N/A';
+
+            // PASO 4: MUTACION DEL DOM - renderizar preview del libro
+            contenedor.innerHTML =
+                '<div class="bg-nocturne-950/50 border border-blue-500/20 rounded-xl p-5">' +
+                    '<div class="flex flex-col sm:flex-row gap-4">' +
+                        (portada ? '<img src="' + portada + '" alt="' + titulo + '" class="w-24 h-36 object-cover rounded-lg shadow-lg mx-auto sm:mx-0">' : '') +
+                        '<div class="flex-1 text-center sm:text-left">' +
+                            '<p class="text-blue-400 text-xs font-semibold mb-1 uppercase tracking-wide">Encontrado en Google Books</p>' +
+                            '<h4 class="text-white font-bold text-lg leading-tight">' + titulo + '</h4>' +
+                            '<p class="text-gray-400 text-sm mt-1">' + autores + '</p>' +
+                            '<p class="text-gray-500 text-xs mt-1">ISBN: ' + isbnExtract + ' | ' + paginas + ' pag. | ' + publicado + '</p>' +
+                            '<p class="text-gray-500 text-xs">' + categorias + '</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<p class="text-gray-400 text-xs mt-4 line-clamp-3 leading-relaxed">' + descripcion.substring(0, 300) + (descripcion.length > 300 ? '...' : '') + '</p>' +
+                    '<div class="flex flex-col sm:flex-row gap-3 mt-5">' +
+                        '<button onclick="agregarLibroDesdeAPI(this)" data-titulo="' + titulo.replace(/"/g, '&quot;') + '" data-autor="' + autores.replace(/"/g, '&quot;') + '" data-isbn="' + isbnExtract + '" class="btn-pulse bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2">' +
+                            '<i data-lucide="book-plus" class="w-4 h-4"></i>Agregar a la biblioteca' +
+                        '</button>' +
+                        '<button onclick="document.getElementById(\'isbnResultado\').classList.add(\'hidden\')" class="bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 px-6 py-2.5 rounded-xl font-semibold transition-all">' +
+                            'Cancelar' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        } catch (error) {
+            contenedor.innerHTML = '<div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">Error al conectar con Google Books API. Verifique su conexion a internet.</div>';
+        }
+    }
+
+    // PASO DE MUTACION: Pre-llenar formulario con datos de la API y preparar registro
+    function agregarLibroDesdeAPI(boton) {
+        const titulo = boton.getAttribute('data-titulo');
+        const autor = boton.getAttribute('data-autor');
+        const isbn = boton.getAttribute('data-isbn');
+
+        // MUTACION: transferir datos de la API al formulario
+        document.getElementById('regTitulo').value = titulo;
+        document.getElementById('regAutor').value = autor;
+        document.getElementById('regISBN').value = isbn;
+
+        // Limpiar busqueda y ocultar resultado
+        document.getElementById('isbnBusqueda').value = '';
+        document.getElementById('isbnResultado').classList.add('hidden');
+
+        // Scroll al formulario para que el usuario confirme
+        document.getElementById('formRegistrar').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        showToast('Datos cargados desde la API. Confirme el registro abajo.');
+    }
+
+    // PASO DE RENDERIZADO: Actualizar la visualizacion de libros
+    function renderizarLibros() {
+        const contenedor = document.getElementById('listaLibros');
+        document.getElementById('totalLibrosBadge').textContent = listaLibros.length + ' libros';
+
+        if (listaLibros.length === 0) {
+            contenedor.innerHTML = '<p class="text-gray-600 text-sm text-center py-8">No hay libros registrados</p>';
+            return;
+        }
+
+        let html = '';
+        let i = 0;
+        while (i < listaLibros.length) {
+            const l = listaLibros[i];
+            const estado = l.disponible() ?
+                '<span class="text-emerald-400 bg-emerald-500/10 text-xs font-semibold px-2 py-1 rounded-full">Disponible</span>' :
+                '<span class="text-orange-400 bg-orange-500/10 text-xs font-semibold px-2 py-1 rounded-full">Prestado</span>';
+            html += '<div class="bg-nocturne-950/50 border border-white/5 rounded-xl p-4 flex items-center justify-between card-3d transition-all"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center"><i data-lucide="book" class="w-5 h-5 text-emerald-400"></i></div><div><p class="text-white font-semibold text-sm">' + l.titulo + '</p><p class="text-gray-500 text-xs">' + l.autor + ' | ' + l.isbn + '</p></div></div>' + estado + '</div>';
+            i = i + 1;
+        }
+        contenedor.innerHTML = html;
+        lucide.createIcons();
+    }
+
+    // PARADIGMA 3: IMPERATIVA - PRESTAR
+    function abrirModalPrestar() {
+        const select = document.getElementById('prestarSelect');
+        const isbn = select.value;
+        if (!isbn) { showToast('Seleccione un libro', 'error'); return; }
+
+        let libroEncontrado = null;
+        let idx = 0;
+        while (idx < listaLibros.length) {
+            if (listaLibros[idx].isbn === isbn) { libroEncontrado = listaLibros[idx]; }
+            idx = idx + 1;
+        }
+        if (!libroEncontrado) { showToast('Libro no encontrado', 'error'); return; }
+
+        document.getElementById('modalPrestarLibro').textContent = libroEncontrado.titulo + ' - ' + libroEncontrado.autor;
+        prestamoSeleccionado = libroEncontrado;
+        abrirModal('modalPrestar');
+    }
+
+    function confirmarPrestamo() {
+        if (!prestamoSeleccionado) return;
+
+        // MUTACION: cambiar estado del libro a prestado
+        prestamoSeleccionado.marcarPrestado();
+
+        // MUTACION: incrementar contador y agregar registro
+        contadorIdPrestamo = contadorIdPrestamo + 1;
+        const registro = {
+            id: contadorIdPrestamo,
+            isbn: prestamoSeleccionado.isbn,
+            titulo: prestamoSeleccionado.titulo,
+            autor: prestamoSeleccionado.autor,
+            fecha: prestamoSeleccionado.fechaPrestamo,
+            devuelto: false
+        };
+        prestamosRealizados.push(registro);
+
+        guardarDatos();
+        cerrarModal('modalPrestar');
+        renderizarLibros();
+        renderizarSelectPrestamos();
+        renderizarPrestamos();
+        renderizarDevolver();
+        renderizarEstadisticas();
+        showToast('Libro prestado exitosamente');
+    }
+
+
+    // PARADIGMA 3: IMPERATIVA - DEVOLVER LIBRO
+    function abrirModalDevolver(idPrestamo) {
+        let prestamo = null;
+        let idx = 0;
+        while (idx < prestamosRealizados.length) {
+            if (prestamosRealizados[idx].id === idPrestamo) { prestamo = prestamosRealizados[idx]; }
+            idx = idx + 1;
+        }
+        if (!prestamo) { showToast('Prestamo no encontrado', 'error'); return; }
+
+        document.getElementById('modalDevolverLibro').textContent = prestamo.titulo + ' - ' + prestamo.autor;
+        prestamoSeleccionado = prestamo;
+        abrirModal('modalDevolver');
+    }
+
+    function confirmarDevolucion() {
+        if (!prestamoSeleccionado) return;
+
+        // PASO 1: MUTACION - Marcar prestamo como devuelto
+        prestamoSeleccionado.devuelto = true;
+
+        // PASO 2: MUTACION - Encontrar el libro y marcarlo como disponible
+        let idx = 0;
+        while (idx < listaLibros.length) {
+            if (listaLibros[idx].isbn === prestamoSeleccionado.isbn) {
+                listaLibros[idx].marcarDevuelto();
+            }
+            idx = idx + 1;
+        }
+
+        guardarDatos();
+        cerrarModal('modalDevolver');
+        renderizarLibros();
+        renderizarSelectPrestamos();
+        renderizarPrestamos();
+        renderizarDevolver();
+        renderizarEstadisticas();
+        showToast('Libro devuelto exitosamente');
+    }
+
+    function renderizarSelectPrestamos() {
+        const select = document.getElementById('prestarSelect');
+        let html = '<option value="">-- Seleccione un libro disponible --</option>';
+        let i = 0;
+        while (i < listaLibros.length) {
+            if (listaLibros[i].disponible()) {
+                html += '<option value="' + listaLibros[i].isbn + '">' + listaLibros[i].titulo + ' - ' + listaLibros[i].autor + '</option>';
+            }
+            i = i + 1;
+        }
+        select.innerHTML = html;
+        document.getElementById('btnPrestar').disabled = select.value === '';
+        select.onchange = function() { document.getElementById('btnPrestar').disabled = this.value === ''; };
+    }
+
+    function renderizarPrestamos() {
+        const contenedor = document.getElementById('listaPrestamos');
+        let activos = 0;
+        let i = 0;
+        while (i < prestamosRealizados.length) {
+            if (!prestamosRealizados[i].devuelto) { activos = activos + 1; }
+            i = i + 1;
+        }
+        document.getElementById('totalPrestamosBadge').textContent = activos;
+
+        if (activos === 0) {
+            contenedor.innerHTML = '<p class="text-gray-600 text-sm text-center py-8">No hay prestamos activos</p>';
+            return;
+        }
+
+        let html = '';
+        i = 0;
+        while (i < prestamosRealizados.length) {
+            const p = prestamosRealizados[i];
+            if (!p.devuelto) {
+                html += '<div class="bg-nocturne-950/50 border border-white/5 rounded-xl p-4 flex items-center justify-between card-3d"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center"><i data-lucide="clock" class="w-5 h-5 text-orange-400"></i></div><div><p class="text-white font-semibold text-sm">' + p.titulo + '</p><p class="text-gray-500 text-xs">ID #' + p.id + ' | ' + p.fecha + '</p></div></div></div>';
+            }
+            i = i + 1;
+        }
+        contenedor.innerHTML = html;
+        lucide.createIcons();
+    }
+
+    function renderizarDevolver() {
+        const contenedor = document.getElementById('listaDevolver');
+        let activos = 0;
+        let i = 0;
+        while (i < prestamosRealizados.length) {
+            if (!prestamosRealizados[i].devuelto) { activos = activos + 1; }
+            i = i + 1;
+        }
+
+        if (activos === 0) {
+            contenedor.innerHTML = '<p class="text-gray-600 text-sm text-center py-8">No hay prestamos activos para devolver</p>';
+            return;
+        }
+
+        let html = '';
+        i = 0;
+        while (i < prestamosRealizados.length) {
+            const p = prestamosRealizados[i];
+            if (!p.devuelto) {
+                html += '<div class="bg-nocturne-950/50 border border-white/5 rounded-xl p-4 flex items-center justify-between card-3d"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center"><i data-lucide="book-open" class="w-5 h-5 text-emerald-400"></i></div><div><p class="text-white font-semibold text-sm">' + p.titulo + '</p><p class="text-gray-500 text-xs">ID #' + p.id + ' | Prestado: ' + p.fecha + '</p></div></div><button onclick="abrirModalDevolver(' + p.id + ')" class="btn-pulse bg-emerald-500 hover:bg-emerald-600 text-white text-sm px-4 py-2 rounded-lg font-semibold transition-all">Devolver</button></div>';
+            }
+            i = i + 1;
+        }
+        contenedor.innerHTML = html;
+        lucide.createIcons();
+    }
+
+
+    // =============================================================================
+    // PARADIGMA 4: ABSTRACCION DE DATOS / TAD
+    // =============================================================================
+    // QUE HACE: Calcula metricas del catalogo (total, disponibles, prestados,
+    //   porcentajes) sin modificar la lista original.
+    //
+    // QUE PARADIGMA USA: TAD (Tipo Abstracto de Datos), que separa:
+    //   - ESPECIFICACION: Que operaciones existen y que retornan.
+    //   - IMPLEMENTACION: Como se calculan internamente.
+    //   - NO MUTACION: Los datos originales quedan intactos.
+    //
+    // POR QUE REPRESENTA TAD:
+    //   EstadisticasBiblioteca es la ESPECIFICACION (define interfaz).
+    //   CalculadoraEstadisticas es la IMPLEMENTACION (logica concreta).
+    //   Ningun metodo modifica la lista original, solo lee y calcula.
+    // =============================================================================
+
+    // ESPECIFICACION: Define que operaciones estadisticas existen
+    class EstadisticasBiblioteca {
+        totalLibros() { throw new Error('Metodo no implementado'); }
+        disponibles() { throw new Error('Metodo no implementado'); }
+        prestados() { throw new Error('Metodo no implementado'); }
+        porcentajeDisponibles() { throw new Error('Metodo no implementado'); }
+        porcentajePrestados() { throw new Error('Metodo no implementado'); }
+    }
+
+    // IMPLEMENTACION: Logica concreta que calcula cada metrica
+    class CalculadoraEstadisticas extends EstadisticasBiblioteca {
+        constructor(listaLibros) {
+            super();
+            this._libros = listaLibros;
+        }
+
+        totalLibros() { return this._libros.length; }
+
+        disponibles() {
+            let contador = 0;
+            let indice = 0;
+            while (indice < this._libros.length) {
+                if (this._libros[indice].disponible()) { contador = contador + 1; }
+                indice = indice + 1;
+            }
+            return contador;
+        }
+
+        prestados() {
+            let contador = 0;
+            let indice = 0;
+            while (indice < this._libros.length) {
+                if (!this._libros[indice].disponible()) { contador = contador + 1; }
+                indice = indice + 1;
+            }
+            return contador;
+        }
+
+        porcentajeDisponibles() {
+            const total = this.totalLibros();
+            const disp = this.disponibles();
+            return total > 0 ? (disp / total) * 100 : 0;
+        }
+
+        porcentajePrestados() {
+            const total = this.totalLibros();
+            const pres = this.prestados();
+            return total > 0 ? (pres / total) * 100 : 0;
+        }
+    }
+
+    // Renderizar estadisticas usando el TAD
+    function renderizarEstadisticas() {
+        const calc = new CalculadoraEstadisticas(listaLibros);
+
+        const total = calc.totalLibros();
+        const disp = calc.disponibles();
+        const pres = calc.prestados();
+        const pctDisp = calc.porcentajeDisponibles();
+        const pctPres = calc.porcentajePrestados();
+
+        // Animacion de conteo
+        animateCounter('statTotal', total);
+        animateCounter('statDisponibles', disp);
+        animateCounter('statPrestados', pres);
+        document.getElementById('statPorcentaje').textContent = Math.round(pctDisp) + '%';
+
+        // Barras de progreso con animacion
+        setTimeout(() => {
+            document.getElementById('barDisp').style.width = pctDisp + '%';
+            document.getElementById('barPres').style.width = pctPres + '%';
+        }, 300);
+        document.getElementById('barDispText').textContent = Math.round(pctDisp) + '%';
+        document.getElementById('barPresText').textContent = Math.round(pctPres) + '%';
+    }
+
+    function animateCounter(elementId, target) {
+        const el = document.getElementById(elementId);
+        const start = parseInt(el.textContent) || 0;
+        const diff = target - start;
+        const duration = 500;
+        const startTime = performance.now();
+
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            el.textContent = Math.round(start + diff * eased);
+            if (progress < 1) requestAnimationFrame(update);
+        }
+        requestAnimationFrame(update);
+    }
+
+
+    // =============================================================================
+    // MODALES Y UTILIDADES
+    // =============================================================================
+
+    function abrirModal(id) {
+        document.getElementById(id).classList.add('active');
+    }
+    function cerrarModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+
+    // Cerrar modal al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal-overlay')) {
+            e.target.classList.remove('active');
+        }
+    });
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toastMsg').textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // =============================================================================
+    // MODAL DE PARADIGMA - Contenido teorico pre-cargado
+    // =============================================================================
+    const paradigmas = {
+        poo: {
+            titulo: 'Programacion Orientada a Objetos (POO)',
+            color: 'text-blue-400',
+            contenido: `
+                <h4 class="text-white font-semibold text-base">Que es?</h4>
+                <p>La POO es un paradigma que organiza el codigo en <strong class="text-blue-400">objetos</strong> que combinan datos (atributos) y comportamiento (metodos) en una sola unidad.</p>
+                <h4 class="text-white font-semibold text-base mt-4">Pilares fundamentales:</h4>
+                <ul class="list-disc list-inside space-y-2 mt-2">
+                    <li><strong class="text-blue-400">Clase:</strong> Plantilla que define que es un objeto (ej: clase Libro).</li>
+                    <li><strong class="text-blue-400">Encapsulamiento:</strong> Los atributos son privados y solo se accede mediante metodos controlados.</li>
+                    <li><strong class="text-blue-400">Abstraccion:</strong> Se expone una interfaz simplificada ocultando la complejidad interna.</li>
+                    <li><strong class="text-blue-400">Herencia:</strong> Una clase puede heredar atributos de otra (no usada aqui).</li>
+                    <li><strong class="text-blue-400">Polimorfismo:</strong> Un mismo metodo puede comportarse diferente segun el objeto.</li>
+                </ul>
+                <h4 class="text-white font-semibold text-base mt-4">Aplicacion en este taller:</h4>
+                <p>La clase <code class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded">Libro</code> tiene atributos privados (#titulo, #autor, #isbn) y metodos publicos (disponible(), marcarPrestado()). Cada libro es una instancia independiente.</p>
+            `
+        },
+        estructurada: {
+            titulo: 'Programacion Estructurada',
+            color: 'text-violet-400',
+            contenido: `
+                <h4 class="text-white font-semibold text-base">Que es?</h4>
+                <p>Un paradigma que restringe el codigo a tres estructuras de control basicas, demostrando que cualquier algoritmo puede expresarse sin saltos.</p>
+                <h4 class="text-white font-semibold text-base mt-4">Tres estructuras basicas:</h4>
+                <ul class="list-disc list-inside space-y-2 mt-2">
+                    <li><strong class="text-violet-400">Secuencia:</strong> Instrucciones que se ejecutan una tras otra, de arriba hacia abajo.</li>
+                    <li><strong class="text-violet-400">Seleccion:</strong> Estructuras if/else que eligen entre caminos diferentes.</li>
+                    <li><strong class="text-violet-400">Iteracion:</strong> Bucles (for/while) que repiten bloques de codigo.</li>
+                </ul>
+                <h4 class="text-white font-semibold text-base mt-4">Prohibiciones:</h4>
+                <p>No se permite <code class="bg-violet-500/10 text-violet-300 px-2 py-1 rounded">goto</code>, <code class="bg-violet-500/10 text-violet-300 px-2 py-1 rounded">break</code>, ni <code class="bg-violet-500/10 text-violet-300 px-2 py-1 rounded">return</code> dentro de bucles. El flujo debe ser completamente predecible.</p>
+                <h4 class="text-white font-semibold text-base mt-4">Aplicacion en este taller:</h4>
+                <p>La funcion <code class="bg-violet-500/10 text-violet-300 px-2 py-1 rounded">buscarLibros()</code> usa un while con indice para recorrer, if/else para seleccionar campo, y acumula resultados sin saltos.</p>
+            `
+        },
+        imperativa: {
+            titulo: 'Programacion Imperativa',
+            color: 'text-orange-400',
+            contenido: `
+                <h4 class="text-white font-semibold text-base">Que es?</h4>
+                <p>El paradigma mas antiguo: describe <strong class="text-orange-400">COMO</strong> se realizan las operaciones mediante instrucciones que modifican el estado del programa paso a paso.</p>
+                <h4 class="text-white font-semibold text-base mt-4">Caracteristicas clave:</h4>
+                <ul class="list-disc list-inside space-y-2 mt-2">
+                    <li><strong class="text-orange-400">Mutacion directa:</strong> Las variables se modifican explicitamente en memoria.</li>
+                    <li><strong class="text-orange-400">Flujo explicito:</strong> Cada paso se ejecuta en orden visible.</li>
+                    <li><strong class="text-orange-400">Estado compartido:</strong> Variables globales representan el estado del sistema.</li>
+                    <li><strong class="text-orange-400">Efectos colaterales:</strong> Las funciones modifican datos externos como efecto de su ejecucion.</li>
+                </ul>
+                <h4 class="text-white font-semibold text-base mt-4">Aplicacion en este taller:</h4>
+                <p>Las funciones <code class="bg-orange-500/10 text-orange-300 px-2 py-1 rounded">prestarLibro()</code> y <code class="bg-orange-500/10 text-orange-300 px-2 py-1 rounded">devolverLibro()</code> modifican directamente las listas globales y el estado de cada libro.</p>
+            `
+        },
+        tad: {
+            titulo: 'Abstraccion de Datos (TAD)',
+            color: 'text-cyan-400',
+            contenido: `
+                <h4 class="text-white font-semibold text-base">Que es?</h4>
+                <p>Un TAD separa la <strong class="text-cyan-400">especificacion</strong> (que hace) de la <strong class="text-cyan-400">implementacion</strong> (como lo hace). Se define una interfaz?? que puede tener multiples implementaciones.</p>
+                <h4 class="text-white font-semibold text-base mt-4">Principios:</h4>
+                <ul class="list-disc list-inside space-y-2 mt-2">
+                    <li><strong class="text-cyan-400">Especificacion:</strong> Define QUE operaciones existen y QUE retornan.</li>
+                    <li><strong class="text-cyan-400">Implementacion:</strong> El codigo concreto que realiza los calculos.</li>
+                    <li><strong class="text-cyan-400">No mutacion:</strong> Las funciones solo LEEN datos, nunca los modifican.</li>
+                    <li><strong class="text-cyan-400">Encapsulamiento:</strong> La implementacion puede cambiar sin afectar al usuario.</li>
+                </ul>
+                <h4 class="text-white font-semibold text-base mt-4">Aplicacion en este taller:</h4>
+                <p><code class="bg-cyan-500/10 text-cyan-300 px-2 py-1 rounded">EstadisticasBiblioteca</code> es la ESPECIFICACION (clase abstracta). <code class="bg-cyan-500/10 text-cyan-300 px-2 py-1 rounded">CalculadoraEstadisticas</code> es la IMPLEMENTACION concreta. Ningun metodo modifica la lista original.</p>
+            `
+        }
+    };
+
+    function abrirModalParadigma(key) {
+        const p = paradigmas[key];
+        if (!p) return;
+        document.getElementById('modalParadigmaTitle').innerHTML = '<span class="' + p.color + '">' + p.titulo + '</span>';
+        document.getElementById('modalParadigmaBody').innerHTML = p.contenido;
+        abrirModal('modalParadigma');
+    }
+
+
+    // =============================================================================
+    // PERSISTENCIA DE DATOS (localStorage)
+    // =============================================================================
+    function guardarDatos() {
+        const datos = {
+            libros: listaLibros.map(l => l.toJSON()),
+            prestamos: prestamosRealizados,
+            contadorId: contadorIdPrestamo
+        };
+        localStorage.setItem('biblioteca', JSON.stringify(datos));
+    }
+
+    function cargarDatos() {
+        const raw = localStorage.getItem('biblioteca');
+        if (!raw) return;
+        try {
+            const datos = JSON.parse(raw);
+            listaLibros = (datos.libros || []).map(d => Libro.fromJSON(d));
+            prestamosRealizados = datos.prestamos || [];
+            contadorIdPrestamo = datos.contadorId || 0;
+        } catch(e) {
+            console.error('Error cargando datos:', e);
+        }
+    }
+
+    // =============================================================================
+    // CARGAR DATOS DE PRUEBA
+    // =============================================================================
+    function cargarDatosPrueba() {
+        const libros = [
+            ['Cien Anos de Soledad', 'Gabriel Garcia Marquez', '978-0307474728'],
+            ['Don Quijote de la Mancha', 'Miguel de Cervantes', '978-8420412146'],
+            ['La Sombra del Viento', 'Carlos Ruiz Zafon', '978-84-08-04364-5'],
+            ['Breve Historia del Tiempo', 'Stephen Hawking', '978-0553380163'],
+            ['El Arte de Programar', 'Donald Knuth', '978-0201896831'],
+            ['Ciencia e Ingenieria de Materiales', 'William Callister', '978-1119405498'],
+            ['Python Programming: An Introduction to Computer Science', 'John Zelle', '978-1590282755'],
+            ['Matematicas Discretas', 'Kenneth Rosen', '978-0073383095']
+        ];
+
+        let i = 0;
+        while (i < libros.length) {
+            const [t, a, isbn] = libros[i];
+            let duplicado = false;
+            let j = 0;
+            while (j < listaLibros.length) {
+                if (listaLibros[j].isbn === isbn) duplicado = true;
+                j = j + 1;
+            }
+            if (!duplicado) {
+                listaLibros.push(new Libro(t, a, isbn));
+            }
+            i = i + 1;
+        }
+
+        guardarDatos();
+        renderizarLibros();
+        renderizarSelectPrestamos();
+        renderizarPrestamos();
+        renderizarDevolver();
+        renderizarEstadisticas();
+        showToast('Datos de prueba cargados');
+    }
+
+    // =============================================================================
+    // SPLASH SCREEN - Ya ejecutado inline arriba. Este bloque es solo compatibilidad.
+    // =============================================================================
+
+    // =============================================================================
+    // SCROLL REVEAL - Animacion al hacer scroll
+    // =============================================================================
+    function initScrollReveal() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => {
+            observer.observe(el);
+        });
+    }
+
+    // =============================================================================
+    // INICIALIZACION - Ejecutar cuando TODO este listo (CDN + DOM)
+    // =============================================================================
+    function initApp() {
+        try {
+            cargarDatos();
+            renderizarLibros();
+            renderizarSelectPrestamos();
+            renderizarPrestamos();
+            renderizarDevolver();
+            renderizarEstadisticas();
+        } catch(e) {
+            console.warn('Error inicializando:', e);
+        }
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        try { initScrollReveal(); } catch(e) {}
+    }
+
+    // Inicializar cuando el DOM este listo
+    if (document.readyState !== 'loading') {
+        initApp();
+    } else {
+        document.addEventListener('DOMContentLoaded', initApp);
+    }
+
+    // Cuando carguen los CDN, re-inicializar icons
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            try { initScrollReveal(); } catch(e) {}
+        }, 500);
+    });
+    </script>
+</body>
+</html>
+
