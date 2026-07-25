@@ -7,7 +7,7 @@ Sistema interactivo de gestion de biblioteca universitaria que implementa **4 pa
 | # | Funcionalidad | Paradigma | Descripcion |
 |---|--------------|-----------|-------------|
 | 1 | Registrar libros | **POO** | Clase Libro con atributos privados, encapsulamiento y abstraccion |
-| 2 | Buscar libros | **Estructurada** | Busqueda con while, if/else, sin reak/continue/eturn en bucles |
+| 2 | Buscar libros | **Estructurada** | Busqueda con while, if/else, sin break/continue/return en bucles |
 | 3 | Prestar libros | **Imperativa** | Mutacion directa de variables globales, pasos secuenciales visibles |
 | 4 | Devolver libros | **Imperativa** | Mismo patron: mutacion explicita de estado paso a paso |
 | 5 | Estadisticas | **TAD** | Clase abstracta (especificacion) + clase concreta (implementacion) |
@@ -60,7 +60,7 @@ python biblioteca.py
 ### 2. Buscar Libros (Estructurada)
 - Busqueda por titulo, autor o ISBN
 - Implementada exclusivamente con while + if/else
-- Sin reak, continue ni eturn dentro del bucle
+- Sin break, continue ni return dentro del bucle
 
 ### 3. Prestar Libros (Imperativa)
 - Mutacion directa de variables globales
